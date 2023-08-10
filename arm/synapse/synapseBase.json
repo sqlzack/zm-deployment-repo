@@ -1,0 +1,110 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.20.4.51522",
+      "templateHash": "5553498828951895370"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "The Azure Region the Synapse workspacw will be deployed to."
+      }
+    },
+    "synapseWorkspaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of your Synapse Workspace"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Storage Account that deploys by Default with a Synapse Workspace. Used to store some workspace data"
+      }
+    },
+    "storageAccountContainerName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Container in the Storage Account that Synapse will use to write workspace data."
+      }
+    },
+    "synapseWorkspaceNameMRG": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Managed Resource Group associated with the Synapse Workspace. (I usually post-fix MRG on the workspace name)"
+      }
+    }
+  },
+  "variables": {
+    "dataLakeStorageAccountUrl": "[format('https://{0}.dfs.core.windows.net', parameters('storageAccountName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2022-05-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "isHnsEnabled": true,
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2022-05-01",
+      "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2022-05-01",
+      "name": "[format('{0}/{1}/{2}', parameters('storageAccountName'), 'default', parameters('storageAccountContainerName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Synapse/workspaces",
+      "apiVersion": "2021-06-01",
+      "name": "[parameters('synapseWorkspaceName')]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "defaultDataLakeStorage": {
+          "accountUrl": "[variables('dataLakeStorageAccountUrl')]",
+          "filesystem": "[parameters('storageAccountContainerName')]"
+        },
+        "managedResourceGroupName": "[parameters('synapseWorkspaceNameMRG')]",
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.Synapse/workspaces/firewallRules",
+      "apiVersion": "2021-06-01",
+      "name": "[format('{0}/{1}', parameters('synapseWorkspaceName'), 'AllowAllNetworks')]",
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "255.255.255.255"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Synapse/workspaces', parameters('synapseWorkspaceName'))]"
+      ]
+    }
+  ]
+}
