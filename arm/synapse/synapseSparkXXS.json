@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.20.4.51522",
+      "templateHash": "5928710103135659542"
+    }
+  },
+  "parameters": {
+    "synapseWorkspaceName": {
+      "type": "string"
+    },
+    "synapseSparkPoolName": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Synapse/workspaces/bigDataPools",
+      "apiVersion": "2021-06-01",
+      "name": "[format('{0}/{1}', parameters('synapseWorkspaceName'), parameters('synapseSparkPoolName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "autoPause": {
+          "delayInMinutes": 30,
+          "enabled": true
+        },
+        "autoScale": {
+          "enabled": false
+        },
+        "cacheSize": 0,
+        "dynamicExecutorAllocation": {
+          "enabled": false
+        },
+        "nodeCount": 3,
+        "nodeSize": "Small",
+        "nodeSizeFamily": "MemoryOptimized",
+        "sparkVersion": "3.3"
+      }
+    }
+  ]
+}
